@@ -2164,5 +2164,5 @@ void high_fall(void) {
   }
 
   //printf("red_state: %d , REDCIRCLE: %d , HOVERING: %d\n", red_state, Chdata[REDCIRCLE], Chdata[HOVERING]);
-  printf("%d %d %d %d %d %d %d\n",Chdata[4],Chdata[5],Chdata[6],Chdata[7],Chdata[8]);
+  // printf("%d %d %d %d %d %d %d\n",Chdata[4],Chdata[5],Chdata[6],Chdata[7],Chdata[8]);
 }

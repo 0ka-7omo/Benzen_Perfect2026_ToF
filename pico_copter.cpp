@@ -1,4 +1,6 @@
 #include "pico_copter.hpp"
+#include "modules/tof/tof_bridge.hpp"
+extern float Phi, Theta; // ToFの値を角度補正するために姿勢データを使う
 
 //グローバル変数
 uint8_t Arm_flag=0;
@@ -62,16 +64,35 @@ int main(void)
   sem_init(&sem, 0, 1);
   multicore_launch_core1(angle_control);  
 
+  //ToFセンサの初期化
+  tof_setup();
+
   Arm_flag=1;
   
-  while(1)
+  while(1) 
   {
-    // printf("Arm_flag:%d LockMode:%d\n",Arm_flag, LockMode);
-    tight_loop_contents();
-    while (Logoutputflag==1){
-      log_output();
+    // ToFセンサから値を取得 
+    tof_poll(); 
+    uint16_t z_mm = 0; 
+    bool z_ok = tof_read_valid(&z_mm); 
+    
+    // 1秒に1回だけシリアルモニタに出力する（洪水防止） 
+    static uint32_t last_print_us = 0; 
+    uint32_t now = time_us_32(); 
+    if ((now - last_print_us) > 1000000) { 
+      last_print_us = now; 
+      if (z_ok) { 
+        float corrected_z = (float)z_mm * cosf(Phi) * cosf(Theta); 
+        printf("TOF Raw: %4u mm | Corrected: %4.1f mm\r\n", z_mm, corrected_z); 
+      } else { 
+        printf("TOF Raw: NA\r\n"); 
+      } 
     }
-  }
-
+    
+    tight_loop_contents(); 
+    while (Logoutputflag==1){ 
+      log_output(); 
+    } 
+  }  
   return 0;
 }
