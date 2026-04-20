@@ -39,9 +39,9 @@ int main(void)
 
   //Initilize Control
   control_init();
-  // Kalman_init();
+  Kalman_init();
   // initialize_Altitude();
-  // printf("#init control\r\n");
+  printf("#init control\r\n");
 
   // //RGB LED off
   rgbled_off();
@@ -73,21 +73,21 @@ int main(void)
   {
     // ToFセンサから値を取得 
     tof_poll(); 
-    uint16_t z_mm = 0; 
-    bool z_ok = tof_read_valid(&z_mm); 
+    // uint16_t z_mm = 0; 
+    // bool z_ok = tof_read_valid(&z_mm); 
     
-    // 1秒に1回だけシリアルモニタに出力する（洪水防止） 
-    static uint32_t last_print_us = 0; 
-    uint32_t now = time_us_32(); 
-    if ((now - last_print_us) > 1000000) { 
-      last_print_us = now; 
-      if (z_ok) { 
-        float corrected_z = (float)z_mm * cosf(Phi) * cosf(Theta); 
-        printf("TOF Raw: %4u mm | Corrected: %4.1f mm\r\n", z_mm, corrected_z); 
-      } else { 
-        printf("TOF Raw: NA\r\n"); 
-      } 
-    }
+    // // 1秒に1回だけシリアルモニタに出力する 
+    // static uint32_t last_print_us = 0; 
+    // uint32_t now = time_us_32(); 
+    // if ((now - last_print_us) > 1000000) { 
+    //   last_print_us = now; 
+    //   if (z_ok) { 
+    //     float corrected_z = (float)z_mm * cosf(Phi) * cosf(Theta); 
+    //     printf("TOF Raw: %4u mm | Corrected: %4.1f mm\r\n", z_mm, corrected_z); 
+    //   } else { 
+    //     printf("TOF Raw: NA\r\n"); 
+    //   } 
+    // }
     
     tight_loop_contents(); 
     while (Logoutputflag==1){ 

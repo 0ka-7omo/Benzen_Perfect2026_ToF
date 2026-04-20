@@ -1,5 +1,6 @@
 
 #include "control.hpp"
+#include "modules/tof/tof_bridge.hpp"
 
 bool first_run = true;
 // alt control
@@ -727,11 +728,11 @@ void rate_control(void)
   //   Rocking_timer = 0.0;
   // }
 
-  // else if ( (Chdata[LOG] < 200) && (Chdata[HOVERING] > 500)&& i2c_connect == 1)
-  // {
-  //   Flight_mode = HOVERING;
-  //   Red_flag = 0;
-  // }
+  else if ( (Chdata[LOG] < 200) && (Chdata[HOVERING] > 500)&& i2c_connect == 1)
+  {
+    Flight_mode = HOVERING;
+    Red_flag = 0;
+  }
 
   // else if ((Chdata[SERVO] < 200) && (Chdata[REDCIRCLE] < 200) && (Chdata[LINETRACE] > 500) && (Chdata[ROCKING] < 200) && i2c_connect == 1)
   // {
@@ -783,14 +784,53 @@ void rate_control(void)
 
   }
   else{
-  T_ref =(float)(Chdata[2]-CH3MIN)/(CH3MAX-CH3MIN);
+
+    if (Flight_mode == HOVERING) { 
+        
+      if (auto_mode_count == 0) {
+        auto_mode_count = 1;
+        ideal = Kalman_alt; // 目標高度ロック
+        T_stick = (float)(Chdata[2]-CH3MIN)/(CH3MAX-CH3MIN); 
+      }
+
+      // 40Hz（10回に1回）でカスケードPID実行
+      if (count_up >= 10) {
+        input = alt_PID(ideal); 
+        count_up = 0;
+      }
+      count_up++;
+
+      T_ref = T_stick + input; // 基準推力 ＋ PID補正値
+
+    } else {
+    // NORMALモード（手動操縦）
+    auto_mode_count = 0;
+    count_up = 0;
+    input = 0;
+
+    // 手動に戻る際、PIDの積分ゴミをリセット（ekf.hppのグローバル変数）
+    integral = 0;
+    integral_v = 0;
+    differential = 0;
+    differential_v = 0;
+
+    T_ref = (float)(Chdata[2]-CH3MIN)/(CH3MAX-CH3MIN);
+
+    // T_ref =(float)(Chdata[2]-CH3MIN)/(CH3MAX-CH3MIN);
+
+    // flip_count=0;
+    
+    // p_ref = Pref;
+    // q_ref = Qref;
+    // r_ref = Rref;
+    }
 
   flip_count=0;
-  
   p_ref = Pref;
   q_ref = Qref;
   r_ref = Rref;
   }
+
   // if (Flight_mode != LINETRACE)
   // if (Flight_mode != HOVERING)
 
@@ -1640,6 +1680,35 @@ void sensor_read(void)
   Mx /= mag_norm;
   My /= mag_norm;
   Mz /= mag_norm;
+
+// 高度センサーから値受け取るコード（new）
+  altitude_count = altitude_count + 1;
+  if (altitude_count == 8) { // 400Hzを8回に1回実行 = 50Hzで更新
+    altitude_count = 0;
+    
+    uint16_t z_mm = 0;
+    // ToFセンサーから新しい距離データが取得できた場合
+    if (tof_read_valid(&z_mm)) {
+      float distance = (float)z_mm; // ToFの生の値（ミリメートル）
+      
+      z_acc = Az - 9.76548; // Z軸加速度から重力加速度成分を引く
+      
+      // ドローンの傾きから、真下方向の距離を計算（三角関数による補正）
+      lotate_altitude_init(Theta, Psi, Phi);
+      lotated_distance = lotate_altitude(distance);
+      
+      // カルマンフィルタに補正済み距離と加速度を渡して、滑らかな高度を推定
+      Kalman_alt = Kalman_PID(lotated_distance, z_acc);
+      altitude = mu_Yn_est(1,0); 
+      
+      // シリアルモニタでの確認用（約1秒に1回出力）
+      static uint32_t print_count = 0;
+      if (print_count++ > 50) { 
+          printf("Raw: %4.0f mm | Corrected: %4.1f mm | Kalman: %4.1f mm\r\n", distance, lotated_distance, Kalman_alt);
+          print_count = 0;
+      }
+    }
+  }
 
   // // 高度センサーから値受け取るコード
   // altitude_count = altitude_count + 1;
