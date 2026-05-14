@@ -73,21 +73,14 @@ int main(void)
   {
     // ToFセンサから値を取得 
     tof_poll(); 
-    // uint16_t z_mm = 0; 
-    // bool z_ok = tof_read_valid(&z_mm); 
-    
-    // // 1秒に1回だけシリアルモニタに出力する 
-    // static uint32_t last_print_us = 0; 
-    // uint32_t now = time_us_32(); 
-    // if ((now - last_print_us) > 1000000) { 
-    //   last_print_us = now; 
-    //   if (z_ok) { 
-    //     float corrected_z = (float)z_mm * cosf(Phi) * cosf(Theta); 
-    //     printf("TOF Raw: %4u mm | Corrected: %4.1f mm\r\n", z_mm, corrected_z); 
-    //   } else { 
-    //     printf("TOF Raw: NA\r\n"); 
-    //   } 
-    // }
+    static uint32_t sw_print_time = 0;
+    if (time_us_32() - sw_print_time > 500000) { 
+        sw_print_time = time_us_32();
+        extern uint16_t Chdata[]; 
+        
+        // Chdata[8] と Chdata[9] の値を表示
+        // printf("CH8: %4d | CH9: %4d\r\n", Chdata[8], Chdata[9]);
+    }
     
     tight_loop_contents(); 
     while (Logoutputflag==1){ 

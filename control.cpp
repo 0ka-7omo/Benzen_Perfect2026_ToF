@@ -25,6 +25,8 @@ uint8_t val = 0;
 uint8_t range_gbuf[16];
 float range_flag = 0;
 uint16_t altitude_count = 0;
+uint16_t tof_watchdog = 0;
+uint16_t tof_blink_cnt = 0;
 // float stick;
 float auto_mode = 0;
 float ideal;
@@ -75,6 +77,10 @@ float TOL_y_alpha = 0;
 float x_alpha = 0;
 float altitude = 0;
 int length_count = 0;
+
+const float TOF_OFFSET_X = -80.0; // 前方向[mm]
+const float TOF_OFFSET_Y =  0.0; // 右方向[mm]
+const float TOF_OFFSET_Z = 75.0; // 地面から[mm]
 
 //flip
 int ahrs_flag=0;
@@ -222,6 +228,15 @@ void led_control(void)
 {
   static uint16_t cnt = 0;
 
+  bool is_tof_alive = false;
+  if (tof_watchdog > 0) {
+      tof_watchdog--;
+      is_tof_alive = true;
+  }
+
+  tof_blink_cnt++;
+  if (tof_blink_cnt >= 100) tof_blink_cnt = 0;
+
   if (Arm_flag == 0 || Arm_flag == 1) {
     rgbled_wait();
   }
@@ -233,6 +248,17 @@ void led_control(void)
     }
     else {
       rgbled_normal();
+    }
+  }
+  else if (Arm_flag == 2 && Flight_mode == HOVERING) {
+    if (is_tof_alive) {
+      if (tof_blink_cnt < 50) {
+        rgbled_normal();
+      } else {
+        rgbled_off();
+      }
+    } else {
+      rgbled_red();
     }
   }
 
@@ -1681,7 +1707,7 @@ void sensor_read(void)
   My /= mag_norm;
   Mz /= mag_norm;
 
-// 高度センサーから値受け取るコード（new）
+// 高度センサーから値受け取るコード
   altitude_count = altitude_count + 1;
   if (altitude_count == 8) { // 400Hzを8回に1回実行 = 50Hzで更新
     altitude_count = 0;
@@ -1689,19 +1715,24 @@ void sensor_read(void)
     uint16_t z_mm = 0;
     // ToFセンサーから新しい距離データが取得できた場合
     if (tof_read_valid(&z_mm)) {
-      float distance = (float)z_mm; // ToFの生の値（ミリメートル）
+
+      tof_watchdog = 200;
       
-      z_acc = Az - 9.76548; // Z軸加速度から重力加速度成分を引く
+      float distance = (float)z_mm- TOF_OFFSET_Z;
+      if (distance < 0) distance = 0;
+
+      z_acc = Az - 9.76548;
       
-      // ドローンの傾きから、真下方向の距離を計算（三角関数による補正）
       lotate_altitude_init(Theta, Psi, Phi);
       lotated_distance = lotate_altitude(distance);
+
+      // float swing_z = (TOF_OFFSET_X * sin(Theta)) + (TOF_OFFSET_Y * sin(Phi));
+      // lotated_distance = lotated_distance - swing_z;
       
-      // カルマンフィルタに補正済み距離と加速度を渡して、滑らかな高度を推定
       Kalman_alt = Kalman_PID(lotated_distance, z_acc);
       altitude = mu_Yn_est(1,0); 
       
-      // シリアルモニタでの確認用（約1秒に1回出力）
+      // シリアルモニタ
       static uint32_t print_count = 0;
       if (print_count++ > 50) { 
           printf("Raw: %4.0f mm | Corrected: %4.1f mm | Kalman: %4.1f mm\r\n", distance, lotated_distance, Kalman_alt);
@@ -2182,56 +2213,61 @@ void unique_mission(){
     }
 }
 
+// high_fall(void)内のHOVERINGが、高度制御のHOVERINGと混同しており
+// 一時的にコメントアウト
+
 void high_fall(void) {
-  const float VREF = 3.3f;
-  const float conversion_factor = VREF / 4096.0f;
+//   const float VREF = 3.3f;
+//   const float conversion_factor = VREF / 4096.0f;
 
-  adc_select_input(0);
-  uint16_t result_left = adc_read();
+//   adc_select_input(0);
+//   uint16_t result_left = adc_read();
 
-  adc_select_input(1);
-  uint16_t result_right = adc_read();
+//   adc_select_input(1);
+//   uint16_t result_right = adc_read();
 
-  v_left  = conversion_factor * result_left;
-  v_right = conversion_factor * result_right;
+//   v_left  = conversion_factor * result_left;
+//   v_right = conversion_factor * result_right;
 
-  if (v_left > 0.7 && v_right>0.7&& Chdata[LINETRACE]>200 ){
-      red_count += 1;
-  }
-  else
-      red_count = 0;
+//   if (v_left > 0.7 && v_right>0.7&& Chdata[LINETRACE]>200 ){
+//       red_count += 1;
+//   }
+//   else
+//       red_count = 0;
 
       
-  if (red_count>15)
-    red_count=15;
+//   if (red_count>15)
+//     red_count=15;
 
-  if (red_count == 15) {
-    red_state = 1;
-  }
+//   if (red_count == 15) {
+//     red_state = 1;
+//   }
 
     
-  if (red_state == 1 && Chdata[REDCIRCLE] > 200) {
-      // 赤外線検知 ＋ REDCIRCLE信号あり → 2つ目投下
-      payload_hook();   // 0度
-  }
-  else if (red_state == 1) {
-      payload_half();     // 90度
-  }
-  else if (Chdata[HOVERING] < 200) {
-      payload_relese();     // 180度
-  }
+//   if (red_state == 1 && Chdata[REDCIRCLE] > 200) {
+//       // 赤外線検知 ＋ REDCIRCLE信号あり → 2つ目投下
+//       payload_hook();   // 0度
+//   }
+//   else if (red_state == 1) {
+//       payload_half();     // 90度
+//   }
+//   else if (Chdata[HOVERING] < 200) {
+//       payload_relese();     // 180度
+//   }
   
-  // else if (Chdata[LOG])
-  else if (Chdata[REDCIRCLE] < 200) {
-      // 手動操作 → フックに戻す
-      payload_half();     // 90度
-  }
+//   // else if (Chdata[LOG])
+//   else if (Chdata[REDCIRCLE] < 200) {
+//       // 手動操作 → フックに戻す
+//       payload_half();     // 90度
+//   }
   
-  else {
-      // それ以外は待機（保持）
-      payload_hook();     // 0度
-  }
+//   else {
+//       // それ以外は待機（保持）
+//       payload_hook();     // 0度
+//   }
 
-  //printf("red_state: %d , REDCIRCLE: %d , HOVERING: %d\n", red_state, Chdata[REDCIRCLE], Chdata[HOVERING]);
-  // printf("%d %d %d %d %d %d %d\n",Chdata[4],Chdata[5],Chdata[6],Chdata[7],Chdata[8]);
+//   //printf("red_state: %d , REDCIRCLE: %d , HOVERING: %d\n", red_state, Chdata[REDCIRCLE], Chdata[HOVERING]);
+//   // printf("%d %d %d %d %d %d %d\n",Chdata[4],Chdata[5],Chdata[6],Chdata[7],Chdata[8]);
+
+  payload_hook(); // 後でこれをコメントアウト
 }
