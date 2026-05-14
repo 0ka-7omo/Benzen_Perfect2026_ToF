@@ -1,4 +1,4 @@
-// Padded and checksummed version of: /home/itolab/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/pico-sdk/src/rp2040/boot_stage2/bs2_default.bin
+// Padded and checksummed version of: /home/okb/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/pico-sdk/src/rp2040/boot_stage2/bs2_default.bin
 
 .cpu cortex-m0plus
 .thumb
