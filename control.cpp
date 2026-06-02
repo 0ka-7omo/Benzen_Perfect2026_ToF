@@ -298,8 +298,8 @@ void loop_400Hz(void)
   // LED Control
   led_control();
 
-  //high fall
-  high_fall();
+  // //high fall
+  // high_fall();
 
 
   if (Arm_flag == 0)
@@ -802,14 +802,14 @@ void rate_control(void)
   // Merker_Hovering();
   // Get reference
   //unique mission change
-  if((Chdata[FLIP])>200){
-    unique_mission();
-    p_ref =flip_p_ref;
-    q_ref =flip_q_ref;
-    r_ref =flip_r_ref;
+  // if((Chdata[FLIP])>200){
+  //   unique_mission();
+  //   p_ref =flip_p_ref;
+  //   q_ref =flip_q_ref;
+  //   r_ref =flip_r_ref;
 
-  }
-  else{
+  // }
+  // else{
 
     if (Flight_mode == HOVERING) { 
         
@@ -855,7 +855,7 @@ void rate_control(void)
   p_ref = Pref;
   q_ref = Qref;
   r_ref = Rref;
-  }
+  
 
   // if (Flight_mode != LINETRACE)
   // if (Flight_mode != HOVERING)
@@ -2047,227 +2047,227 @@ void kalman_filter(void)
   ekf(Xp, Xe, P, Z, Omega_m, Q, R, G * dt, Beta, dt);
 }
 
-void unique_mission(){
+// void unique_mission(){
  
-    float ahrs_flag;
+//     float ahrs_flag;
 
-    uint8_t flip_delay=180;
-    float flip_time=0.6;
-    uint16_t flip_add_time=240;//flip_time/0.0025;
+//     uint8_t flip_delay=180;
+//     float flip_time=0.6;
+//     uint16_t flip_add_time=240;//flip_time/0.0025;
 
-    float domega;
-    uint16_t flip_second_time =flip_delay+(flip_add_time+10)+400;
+//     float domega;
+//     uint16_t flip_second_time =flip_delay+(flip_add_time+10)+400;
    
-    domega=8*M_PI/flip_time/flip_time*0.00221;
+//     domega=8*M_PI/flip_time/flip_time*0.00221;
 
-    if(flip_count<flip_delay){
-        T_ref=0.70;
-        flip_p_ref = Pref;
-        flip_q_ref = Qref;
-        flip_r_ref = Rref;
-        flip_count++;
-        // printf("1");
-    }
-    else if(flip_count<flip_delay+ 1*flip_add_time/6 ){//0~60
+//     if(flip_count<flip_delay){
+//         T_ref=0.70;
+//         flip_p_ref = Pref;
+//         flip_q_ref = Qref;
+//         flip_r_ref = Rref;
+//         flip_count++;
+//         // printf("1");
+//     }
+//     else if(flip_count<flip_delay+ 1*flip_add_time/6 ){//0~60
    
-        T_ref=0.65;
-        flip_p_ref+=domega;
-        flip_count++;
-        // printf("2");
+//         T_ref=0.65;
+//         flip_p_ref+=domega;
+//         flip_count++;
+//         // printf("2");
 
-    }
-   else if(flip_count<flip_delay+ 2*flip_add_time/6){//60~120度
+//     }
+//    else if(flip_count<flip_delay+ 2*flip_add_time/6){//60~120度
        
-        T_ref=0.45;
-        flip_p_ref+=domega;
+//         T_ref=0.45;
+//         flip_p_ref+=domega;
 
-        flip_count++;
-        // printf("3");
+//         flip_count++;
+//         // printf("3");
 
-    } else if(flip_count<flip_delay+ 3*flip_add_time/6){//120~180度
+//     } else if(flip_count<flip_delay+ 3*flip_add_time/6){//120~180度
        
-        T_ref=0.25;
-        flip_p_ref+=domega;
+//         T_ref=0.25;
+//         flip_p_ref+=domega;
 
-        flip_count++;
-        // printf("3");
+//         flip_count++;
+//         // printf("3");
 
-    } else if(flip_count<flip_delay+ 4*flip_add_time/6){//180~240度
+//     } else if(flip_count<flip_delay+ 4*flip_add_time/6){//180~240度
        
-        T_ref=0.30;
-        flip_p_ref-=domega;
+//         T_ref=0.30;
+//         flip_p_ref-=domega;
 
-        flip_count++;
-        // printf("3");
+//         flip_count++;
+//         // printf("3");
 
-    }
-    else if(flip_count<flip_delay+ 5*flip_add_time/6){//240~300
+//     }
+//     else if(flip_count<flip_delay+ 5*flip_add_time/6){//240~300
        
-        T_ref=0.55;
-        flip_p_ref-=domega;
+//         T_ref=0.55;
+//         flip_p_ref-=domega;
 
-        flip_count++;
-        // printf("3");
+//         flip_count++;
+//         // printf("3");
 
-    }
-    else if(flip_count<flip_delay+ flip_add_time){//300~360度
+//     }
+//     else if(flip_count<flip_delay+ flip_add_time){//300~360度
        
-        T_ref=0.65;
-        flip_p_ref-=domega;
+//         T_ref=0.65;
+//         flip_p_ref-=domega;
 
-        flip_count++;
-        // printf("3");
+//         flip_count++;
+//         // printf("3");
 
-    }
-    else if(flip_count<flip_delay+(flip_add_time+10)){//休憩
+//     }
+//     else if(flip_count<flip_delay+(flip_add_time+10)){//休憩
         
-        T_ref =0.70;
-        if(ahrs_flag==0){
-            ahrs_flag=1;
-            Phi_ref=0;
-            Theta_ref=0;
-            Psi_ref =0;
-        }
-        flip_p_ref=0.0;
-        flip_count ++;
-        // printf("6");
-    }
-    else if(flip_count<flip_delay+flip_second_time){
-        T_ref=0.75;
-        flip_p_ref = Pref;
-        flip_q_ref = Qref;
-        flip_r_ref = Rref;
-        flip_count++;
-        // printf("1");
-    }
-    else if(flip_count<flip_delay+ 1*flip_add_time/6+flip_second_time ){//0~60
+//         T_ref =0.70;
+//         if(ahrs_flag==0){
+//             ahrs_flag=1;
+//             Phi_ref=0;
+//             Theta_ref=0;
+//             Psi_ref =0;
+//         }
+//         flip_p_ref=0.0;
+//         flip_count ++;
+//         // printf("6");
+//     }
+//     else if(flip_count<flip_delay+flip_second_time){
+//         T_ref=0.75;
+//         flip_p_ref = Pref;
+//         flip_q_ref = Qref;
+//         flip_r_ref = Rref;
+//         flip_count++;
+//         // printf("1");
+//     }
+//     else if(flip_count<flip_delay+ 1*flip_add_time/6+flip_second_time ){//0~60
    
-        T_ref=0.65;
-        flip_q_ref+=(-domega);
-        flip_count++;
-        // printf("2");
+//         T_ref=0.65;
+//         flip_q_ref+=(-domega);
+//         flip_count++;
+//         // printf("2");
 
-    }
-    else if(flip_count<flip_delay+ 2*flip_add_time/6+flip_second_time){//60~120度
+//     }
+//     else if(flip_count<flip_delay+ 2*flip_add_time/6+flip_second_time){//60~120度
        
-        T_ref=0.45;
-        flip_q_ref+=(-domega);
+//         T_ref=0.45;
+//         flip_q_ref+=(-domega);
 
-        flip_count++;
-        // printf("3");
+//         flip_count++;
+//         // printf("3");
 
-    }
-    else if(flip_count<flip_delay+ 3*flip_add_time/6+flip_second_time){//120~180度
+//     }
+//     else if(flip_count<flip_delay+ 3*flip_add_time/6+flip_second_time){//120~180度
        
-        T_ref=0.25;
-        flip_q_ref+=(-domega);
+//         T_ref=0.25;
+//         flip_q_ref+=(-domega);
 
-        flip_count++;
-        // printf("3");
+//         flip_count++;
+//         // printf("3");
 
-    }
-    else if(flip_count<flip_delay+ 4*flip_add_time/6+flip_second_time){//180~240度
-        T_ref=0.30;
-        flip_q_ref-=(-domega);
-        // printf("4");
+//     }
+//     else if(flip_count<flip_delay+ 4*flip_add_time/6+flip_second_time){//180~240度
+//         T_ref=0.30;
+//         flip_q_ref-=(-domega);
+//         // printf("4");
        
-        flip_count++;
+//         flip_count++;
 
-    }
-    else if(flip_count<flip_delay+ 5*flip_add_time/6+flip_second_time){//240~300度
-        T_ref=0.55;
-        flip_q_ref-=(-domega);
-        // printf("4");
+//     }
+//     else if(flip_count<flip_delay+ 5*flip_add_time/6+flip_second_time){//240~300度
+//         T_ref=0.55;
+//         flip_q_ref-=(-domega);
+//         // printf("4");
        
-        flip_count++;
+//         flip_count++;
 
-    }
-    else if(flip_count<flip_delay+(flip_add_time)+flip_second_time){//300~360度
-        T_ref=0.65;
-        flip_q_ref-=(-domega);
-        flip_count++;
-        // printf("5");
+//     }
+//     else if(flip_count<flip_delay+(flip_add_time)+flip_second_time){//300~360度
+//         T_ref=0.65;
+//         flip_q_ref-=(-domega);
+//         flip_count++;
+//         // printf("5");
 
-    }
-    else if(flip_count<flip_delay+(flip_add_time+10)+flip_second_time){//休憩
+//     }
+//     else if(flip_count<flip_delay+(flip_add_time+10)+flip_second_time){//休憩
         
-        T_ref =0.70;
-        if(ahrs_flag==0){
-            ahrs_flag=1;
-            Phi_ref=0;
-            Theta_ref=0;
-            Psi_ref =0;
-        }
-        flip_p_ref=0.0;
-        flip_count ++;
-        // printf("6");
-    }
-    else{
-    ahrs_flag=0;
-    flip_count++;
-    T_ref = (float)(Chdata[2] - CH3MIN) / (CH3MAX - CH3MIN);
-    flip_p_ref = Pref;
-    flip_q_ref = Qref;
-    flip_r_ref = Rref;
+//         T_ref =0.70;
+//         if(ahrs_flag==0){
+//             ahrs_flag=1;
+//             Phi_ref=0;
+//             Theta_ref=0;
+//             Psi_ref =0;
+//         }
+//         flip_p_ref=0.0;
+//         flip_count ++;
+//         // printf("6");
+//     }
+//     else{
+//     ahrs_flag=0;
+//     flip_count++;
+//     T_ref = (float)(Chdata[2] - CH3MIN) / (CH3MAX - CH3MIN);
+//     flip_p_ref = Pref;
+//     flip_q_ref = Qref;
+//     flip_r_ref = Rref;
 
-    }
-}
+//     }
+// }
 
-// high_fall(void)内のHOVERINGが、高度制御のHOVERINGと混同しており
-// 一時的にコメントアウト
+// // high_fall(void)内のHOVERINGが、高度制御のHOVERINGと混同しており
+// // 一時的にコメントアウト
 
-void high_fall(void) {
-//   const float VREF = 3.3f;
-//   const float conversion_factor = VREF / 4096.0f;
+// void high_fall(void) {
+// //   const float VREF = 3.3f;
+// //   const float conversion_factor = VREF / 4096.0f;
 
-//   adc_select_input(0);
-//   uint16_t result_left = adc_read();
+// //   adc_select_input(0);
+// //   uint16_t result_left = adc_read();
 
-//   adc_select_input(1);
-//   uint16_t result_right = adc_read();
+// //   adc_select_input(1);
+// //   uint16_t result_right = adc_read();
 
-//   v_left  = conversion_factor * result_left;
-//   v_right = conversion_factor * result_right;
+// //   v_left  = conversion_factor * result_left;
+// //   v_right = conversion_factor * result_right;
 
-//   if (v_left > 0.7 && v_right>0.7&& Chdata[LINETRACE]>200 ){
-//       red_count += 1;
-//   }
-//   else
-//       red_count = 0;
+// //   if (v_left > 0.7 && v_right>0.7&& Chdata[LINETRACE]>200 ){
+// //       red_count += 1;
+// //   }
+// //   else
+// //       red_count = 0;
 
       
-//   if (red_count>15)
-//     red_count=15;
+// //   if (red_count>15)
+// //     red_count=15;
 
-//   if (red_count == 15) {
-//     red_state = 1;
-//   }
+// //   if (red_count == 15) {
+// //     red_state = 1;
+// //   }
 
     
-//   if (red_state == 1 && Chdata[REDCIRCLE] > 200) {
-//       // 赤外線検知 ＋ REDCIRCLE信号あり → 2つ目投下
-//       payload_hook();   // 0度
-//   }
-//   else if (red_state == 1) {
-//       payload_half();     // 90度
-//   }
-//   else if (Chdata[HOVERING] < 200) {
-//       payload_relese();     // 180度
-//   }
+// //   if (red_state == 1 && Chdata[REDCIRCLE] > 200) {
+// //       // 赤外線検知 ＋ REDCIRCLE信号あり → 2つ目投下
+// //       payload_hook();   // 0度
+// //   }
+// //   else if (red_state == 1) {
+// //       payload_half();     // 90度
+// //   }
+// //   else if (Chdata[HOVERING] < 200) {
+// //       payload_relese();     // 180度
+// //   }
   
-//   // else if (Chdata[LOG])
-//   else if (Chdata[REDCIRCLE] < 200) {
-//       // 手動操作 → フックに戻す
-//       payload_half();     // 90度
-//   }
+// //   // else if (Chdata[LOG])
+// //   else if (Chdata[REDCIRCLE] < 200) {
+// //       // 手動操作 → フックに戻す
+// //       payload_half();     // 90度
+// //   }
   
-//   else {
-//       // それ以外は待機（保持）
-//       payload_hook();     // 0度
-//   }
+// //   else {
+// //       // それ以外は待機（保持）
+// //       payload_hook();     // 0度
+// //   }
 
-//   //printf("red_state: %d , REDCIRCLE: %d , HOVERING: %d\n", red_state, Chdata[REDCIRCLE], Chdata[HOVERING]);
-//   // printf("%d %d %d %d %d %d %d\n",Chdata[4],Chdata[5],Chdata[6],Chdata[7],Chdata[8]);
+// //   //printf("red_state: %d , REDCIRCLE: %d , HOVERING: %d\n", red_state, Chdata[REDCIRCLE], Chdata[HOVERING]);
+// //   // printf("%d %d %d %d %d %d %d\n",Chdata[4],Chdata[5],Chdata[6],Chdata[7],Chdata[8]);
 
-  payload_hook(); // 後でこれをコメントアウト
-}
+//   payload_hook(); // 後でこれをコメントアウト
+// }
