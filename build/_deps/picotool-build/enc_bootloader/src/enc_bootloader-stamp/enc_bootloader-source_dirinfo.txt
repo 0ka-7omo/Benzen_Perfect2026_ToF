@@ -4,6 +4,6 @@
 
 method=source_dir
 command=
-source_dir=/home/itolab/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/_deps/picotool-src/enc_bootloader
+source_dir=/home/okb/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/_deps/picotool-src/enc_bootloader
 work_dir=
 

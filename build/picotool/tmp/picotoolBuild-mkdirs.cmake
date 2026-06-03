@@ -1,22 +1,27 @@
 # Distributed under the OSI-approved BSD 3-Clause License.  See accompanying
-# file Copyright.txt or https://cmake.org/licensing for details.
+# file LICENSE.rst or https://cmake.org/licensing for details.
 
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION ${CMAKE_VERSION}) # this file comes with cmake
 
+# If CMAKE_DISABLE_SOURCE_CHANGES is set to true and the source directory is an
+# existing directory in our source tree, calling file(MAKE_DIRECTORY) on it
+# would cause a fatal error, even though it would be a no-op.
+if(NOT EXISTS "/home/okb/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/_deps/picotool-src")
+  file(MAKE_DIRECTORY "/home/okb/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/_deps/picotool-src")
+endif()
 file(MAKE_DIRECTORY
-  "/home/itolab/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/_deps/picotool-src"
-  "/home/itolab/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/_deps/picotool-build"
-  "/home/itolab/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/_deps"
-  "/home/itolab/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/picotool/tmp"
-  "/home/itolab/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/picotool/src/picotoolBuild-stamp"
-  "/home/itolab/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/picotool/src"
-  "/home/itolab/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/picotool/src/picotoolBuild-stamp"
+  "/home/okb/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/_deps/picotool-build"
+  "/home/okb/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/_deps"
+  "/home/okb/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/picotool/tmp"
+  "/home/okb/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/picotool/src/picotoolBuild-stamp"
+  "/home/okb/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/picotool/src"
+  "/home/okb/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/picotool/src/picotoolBuild-stamp"
 )
 
 set(configSubDirs )
 foreach(subDir IN LISTS configSubDirs)
-    file(MAKE_DIRECTORY "/home/itolab/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/picotool/src/picotoolBuild-stamp/${subDir}")
+    file(MAKE_DIRECTORY "/home/okb/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/picotool/src/picotoolBuild-stamp/${subDir}")
 endforeach()
 if(cfgdir)
-  file(MAKE_DIRECTORY "/home/itolab/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/picotool/src/picotoolBuild-stamp${cfgdir}") # cfgdir has leading slash
+  file(MAKE_DIRECTORY "/home/okb/Members/Masters/Okabe/projects/Benzen_Perfect2025/build/picotool/src/picotoolBuild-stamp${cfgdir}") # cfgdir has leading slash
 endif()
