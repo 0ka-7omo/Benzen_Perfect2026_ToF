@@ -20,10 +20,10 @@ int main(void)
   stdio_init_all();
   printf("#init pico\r\n");
 
-  //adc initial
-  adc_init();
-  adc_gpio_init(26);
-  adc_gpio_init(27);
+  // //adc initial
+  // adc_init();
+  // adc_gpio_init(26);
+  // adc_gpio_init(27);
 
   //Initialize LSM9DS1
   imu_mag_init();
@@ -65,22 +65,24 @@ int main(void)
   multicore_launch_core1(angle_control);  
 
   //ToFセンサの初期化
-  tof_setup();
-
+  // tof_setup();
+  initialize_Altitude();
+  printf("#init tof\r\n");
+  
   Arm_flag=1;
   
   while(1) 
   {
     // ToFセンサから値を取得 
-    tof_poll(); 
-    static uint32_t sw_print_time = 0;
-    if (time_us_32() - sw_print_time > 500000) { 
-        sw_print_time = time_us_32();
-        extern uint16_t Chdata[]; 
+    // tof_poll(); 
+    // static uint32_t sw_print_time = 0;
+    // if (time_us_32() - sw_print_time > 500000) { 
+    //     sw_print_time = time_us_32();
+    //     extern uint16_t Chdata[]; 
         
-        // Chdata[8] と Chdata[9] の値を表示
-        // printf("CH8: %4d | CH9: %4d\r\n", Chdata[8], Chdata[9]);
-    }
+    //     // Chdata[8] と Chdata[9] の値を表示
+    //     // printf("CH8: %4d | CH9: %4d\r\n", Chdata[8], Chdata[9]);
+    // }
     
     tight_loop_contents(); 
     while (Logoutputflag==1){ 
