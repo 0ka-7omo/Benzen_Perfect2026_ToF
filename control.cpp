@@ -1,6 +1,9 @@
 
 #include "control.hpp"
-#include "modules/tof/tof_bridge.hpp"
+
+extern "C" {
+#include "api/vl53l5cx_api.h"
+}
 
 bool first_run = true;
 // alt control
@@ -81,6 +84,9 @@ int length_count = 0;
 const float TOF_OFFSET_X = -80.0; // 前方向[mm]
 const float TOF_OFFSET_Y = 0.0;   // 右方向[mm]
 const float TOF_OFFSET_Z = 75.0;  // 地面から[mm]
+
+extern VL53L5CX_Configuration dev_vl53l5cx;
+extern VL53L5CX_ResultsData tof_results;
 
 // flip
 int ahrs_flag = 0;
@@ -1755,34 +1761,41 @@ void sensor_read(void)
     {
       // printf("I2C通信接続できました。 %4d\n",result);
       // 高度センサーから値受け取るコード
-      if (isDataReady == 0)
+      uint8_t isDataReady = 0;
+      vl53l5cx_check_data_ready(&dev_vl53l5cx, &isDataReady);
+
+      if (isDataReady == 1)
       {
-        Status = VL53L1X_CheckForDataReady(dev, &isDataReady);
-      }
-      else if (isDataReady == 1)
-      {
-        isDataReady = 0;
-        Status = VL53L1X_GetRangeStatus(dev, &rangeStatus);
-        Status = VL53L1X_GetDistance(dev, &distance);
-        Status = VL53L1X_ClearInterrupt(dev);
+        vl53l5cx_get_ranging_data(&dev_vl53l5cx, &tof_results);
 
         tof_watchdog = 200;
-        // float distance_offset = distance - TOF_OFFSET_Z;
+        
+        // 中央の4マス(インデックス5, 6, 9, 10)の平均を抽出
+        float sum_distance = 0.0;
+        int valid_zones = 0;
+        int center_zones[4] = {5, 6, 9, 10};
 
-        // z_acc  = Az-9.80665;
+        for (int i = 0; i < 4; i++) {
+            int z = center_zones[i];
+            uint8_t t_stat = tof_results.target_status[VL53L5CX_NB_TARGET_PER_ZONE * z];
+            // ステータス5(100%信頼) または 9(測定完了)のみ採用
+            if (t_stat == 5 || t_stat == 9) {
+                sum_distance += tof_results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE * z];
+                valid_zones++;
+            }
+        }
+
+        if (valid_zones > 0) {
+            distance = sum_distance / valid_zones;
+        } else {
+            distance = tof_results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE * 5];
+        }
+
         z_acc = Az - 9.76548;
         lotate_altitude_init(Theta, Psi, Phi);
         lotated_distance = lotate_altitude(distance);
         Kalman_alt = Kalman_PID(lotated_distance, z_acc);
         altitude = mu_Yn_est(1, 0);
-
-        // // シリアルモニタ
-        // static uint32_t print_count = 0;
-        // if (print_count++ > 50)
-        // {
-        //   printf("Raw: %4.0f mm | Corrected: %4.1f mm | Kalman: %4.1f mm\r\n", distance, lotated_distance, Kalman_alt);
-        //   print_count = 0;
-        // }
       }
       // tof_watchdog = 200;
 

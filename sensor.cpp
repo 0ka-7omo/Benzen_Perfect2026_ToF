@@ -1,5 +1,9 @@
 #include "sensor.hpp"
 
+extern "C" {
+#include "api/vl53l5cx_api.h"
+}
+
 int16_t data_raw_acceleration[3];
 int16_t data_raw_angular_rate[3];
 int16_t data_raw_magnetic_field[3];
@@ -29,6 +33,24 @@ uint8_t Kalman_distance = 0;
 int sleep_time = 2000;
 int ms = 200;
 
+#ifndef I2C_PORT
+#define I2C_PORT i2c1
+#endif
+
+#ifndef SDA_PIN
+#define SDA_PIN 26
+#endif
+
+#ifndef SCL_PIN
+#define SCL_PIN 27
+#endif
+
+#ifndef i2C_CLOCK
+#define i2C_CLOCK 400000
+#endif
+
+VL53L5CX_Configuration dev_vl53l5cx;
+VL53L5CX_ResultsData tof_results;
 
 
 //ローカル関数宣言
@@ -157,40 +179,57 @@ void initialize_Altitude(void)
   gpio_set_function(SCL_PIN,GPIO_FUNC_I2C);//GPIO機能をi2cに選択(SCL)
   gpio_set_pulls(SDA_PIN, true, false);// enable internal pull-up of SDA_PIN=GP26
   gpio_set_pulls(SCL_PIN, true, false);// enable internal pull-up of SCL_PIN=GP27
-  // printf("alt_2\r\n");
+
   // /* Platform Initialization code here*/
+  // I2Cアドレスの設定 (標準0x52を7bitアドレス化して0x29)
+  dev_vl53l5cx.platform.address = 0x29;
+  dev_vl53l5cx.platform.i2c = I2C_PORT;
+
+  // printf("alt_2\r\n");
   // /* Wait for device booted*/
   sleep_ms(3000);
-  while((state&1) == 0 ) {
-    Status = VL53L1X_BootState(dev, &state);
-    sleep_ms(ms);
+
+  uint8_t isAlive = 0;
+  while(isAlive == 0 ) {
+    Status = vl53l5cx_is_alive(&dev_vl53l5cx, &isAlive);
+    sleep_ms(10);
   };
+
   // printf("alt_3\r\n");
   // /* Sensor Initialization */
-  Status = VL53L1X_SensorInit(dev);
+  // ここで約80KBのファームウェアがI2Cで送信されます（約1〜2秒かかります）
+  Status = vl53l5cx_init(&dev_vl53l5cx);
+
   // /* Modify the default configuration */
-  // // Status = VL53L1X_SetInterMeasurementPeriod();
-  // Status = VL53L1X_SetOffset(dev,OffsetValue);
-  Status = VL53L1X_SetDistanceMode(dev,2);
-  Status = VL53L1X_SetTimingBudgetInMs(dev,20);
-  Status = VL53L1X_SetInterMeasurementInMs(dev,20);
+  // 4x4 (16マス) モードに設定 (DistanceModeの代わり)
+  Status = vl53l5cx_set_resolution(&dev_vl53l5cx, VL53L5CX_RESOLUTION_4X4);
+  
+  // 50Hz (20ms) に設定 (TimingBudget / InterMeasurementの代わり)
+  Status = vl53l5cx_set_ranging_frequency_hz(&dev_vl53l5cx, 50);
+
   //Enable the ranging
-  Status = VL53L1X_StartRanging(dev);
+  Status = vl53l5cx_start_ranging(&dev_vl53l5cx);
   printf("alt_4\r\n");
 }
 
 void get_Altitude(void)
 {
+  uint8_t isDataReady = 0;
   while(isDataReady==0){
-    Status = VL53L1X_CheckForDataReady(dev, &isDataReady);
+    Status = vl53l5cx_check_data_ready(&dev_vl53l5cx, &isDataReady);
   }
-  isDataReady =0;
-  Status = VL53L1X_GetRangeStatus(dev,&rangeStatus);
-  Status = VL53L1X_GetDistance(dev,&distance);
-  Status = VL53L1X_ClearInterrupt(dev);
+  isDataReady = 0;
+
+  // 距離データの取得
+  Status = vl53l5cx_get_ranging_data(&dev_vl53l5cx, &tof_results);
+  printf("alt_4: VL53L5CX Start Ranging Done!\r\n");
+  
+  // // 16マスのうち、中央付近(5番マス)のデータを暫定的に使用
+  // distance = tof_results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE * 5];
+  
+  // VL53L5CXは ClearInterrupt 関数が不要なため削除
   //printf("%9.6f %4d\n",(current_time-start_time)/1000000.0,distance);
 }
-
 #if 0
 int main(void)
 {

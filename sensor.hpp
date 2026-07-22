@@ -7,8 +7,13 @@
 #include "pico/binary_info.h"
 #include "hardware/spi.h"
 #include "lsm9ds1_reg.h"
-#include "vl53l1_platform.h"
-#include "VL53L1X_api.h"
+
+extern "C" {
+#include "api/vl53l5cx_api.h"
+}
+
+extern VL53L5CX_Configuration dev_vl53l5cx;
+extern VL53L5CX_ResultsData tof_results;
 
 //extern int16_t data_raw_acceleration[3];
 //extern int16_t data_raw_angular_rate[3];
