@@ -1796,6 +1796,15 @@ void sensor_read(void)
         lotated_distance = lotate_altitude(distance);
         Kalman_alt = Kalman_PID(lotated_distance, z_acc);
         altitude = mu_Yn_est(1, 0);
+
+        static uint16_t tof_print_count = 0;
+        tof_print_count++;
+        // 50Hzでここを通るので、25回に1回 = 約0.5秒に1回表示します
+        if (tof_print_count >= 25) {
+            printf("ToF Raw: %4.0f mm | Rotated: %4.1f mm | Kalman Alt: %4.1f mm\r\n", 
+                    distance, lotated_distance, altitude);
+            tof_print_count = 0;
+        }
       }
       // tof_watchdog = 200;
 
