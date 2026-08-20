@@ -550,8 +550,8 @@ void control_init(void)
   // theta_pid.set_parameter(2.1, 1000.0, 0.007, 0.125, 0.01); // 6.0  8.0,20,0.007 // 1.6
   // psi_pid.set_parameter(0, 1000, 0, 0, 0.01);     //0 1000 0.01
 
-  p_pid.set_parameter(0.032, 1000.0, 0.0125, 0.125, 0.0025); // ikaring(2.2, 5, 0.01) itocopter(2.5, 100, 0.009)
-  q_pid.set_parameter(0.032, 1000.0, 0.0125, 0.125, 0.0025); // ikaring(1.5, 1, 0.01) itocopter(2.5, 100, 0.009)
+  p_pid.set_parameter(0.032, 1000.0, 0.0105, 0.125, 0.0025); // ikaring(2.2, 5, 0.01) itocopter(2.5, 100, 0.009)
+  q_pid.set_parameter(0.032, 1000.0, 0.0105, 0.125, 0.0025); // ikaring(1.5, 1, 0.01) itocopter(2.5, 100, 0.009)
   r_pid.set_parameter(0.21, 10000.0, 0.01, 0.125, 0.0025);   // ikaring(3.1, 1, 0.01) itocopter(3.5, 10, 0.009)
   // Angle control
   phi_pid.set_parameter(2.1, 1000.0, 0.013, 0.125, 0.01);   // 6.0  8.0,20,0.007      //1
@@ -841,7 +841,7 @@ void rate_control(void)
         }
 
         // 50Hz（8回に1回）でカスケードPID実行
-        if (count_up >= 10)  // 8
+        if (count_up >= 8)  // 10
         {
           input = alt_PID(ideal);
           count_up = 0;
@@ -1744,91 +1744,54 @@ void sensor_read(void)
   { // 400Hzを8回に1回実行 = 50Hzで更新
     altitude_count = 0;
 
-    uint8_t checkdata[2];
-    int result = i2c_read_blocking(I2C_PORT, dev, checkdata, sizeof(checkdata), false);
+    // uint8_t isDataReady = 0;
+    // // API公式の関数で安全にデータが準備できたか確認する
+    // vl53l5cx_check_data_ready(&dev_vl53l5cx, &isDataReady);
 
-    // ToFセンサーから新しい距離データが取得できた場合
-    if (result != 2)
-    {
-      // I2C通信エラーチェック
-      // エラーが発生した場合、I2C通信が切断されたとみなす
-      // ここで適切なエラーハンドリングを行う
-      Flight_mode = NORMAL;
-      i2c_connect = 0;
-      printf("I2C通信エラーが発生しました。 %4d\n", result);
-    }
-    else
-    {
-      // printf("I2C通信接続できました。 %4d\n",result);
-      // 高度センサーから値受け取るコード
-      uint8_t isDataReady = 0;
-      vl53l5cx_check_data_ready(&dev_vl53l5cx, &isDataReady);
+    // if (isDataReady == 1)
+    // {
+    //   vl53l5cx_get_ranging_data(&dev_vl53l5cx, &tof_results);
 
-      if (isDataReady == 1)
-      {
-        vl53l5cx_get_ranging_data(&dev_vl53l5cx, &tof_results);
+    //   // データが来たらウォッチドッグ（0.5秒タイマー）をリセット
+    //   tof_watchdog = 200;
+      
+    //   // 中央の4マス(インデックス5, 6, 9, 10)の平均を抽出
+    //   float sum_distance = 0.0;
+    //   int valid_zones = 0;
+    //   int center_zones[4] = {5, 6, 9, 10};
 
-        tof_watchdog = 200;
-        
-        // 中央の4マス(インデックス5, 6, 9, 10)の平均を抽出
-        float sum_distance = 0.0;
-        int valid_zones = 0;
-        int center_zones[4] = {5, 6, 9, 10};
+    //   for (int i = 0; i < 4; i++) {
+    //       int z = center_zones[i];
+    //       uint8_t t_stat = tof_results.target_status[VL53L5CX_NB_TARGET_PER_ZONE * z];
+    //       // ステータス5(100%信頼) または 9(測定完了)のみ採用
+    //       if (t_stat == 5 || t_stat == 9) {
+    //           sum_distance += tof_results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE * z];
+    //           valid_zones++;
+    //       }
+    //   }
 
-        for (int i = 0; i < 4; i++) {
-            int z = center_zones[i];
-            uint8_t t_stat = tof_results.target_status[VL53L5CX_NB_TARGET_PER_ZONE * z];
-            // ステータス5(100%信頼) または 9(測定完了)のみ採用
-            if (t_stat == 5 || t_stat == 9) {
-                sum_distance += tof_results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE * z];
-                valid_zones++;
-            }
-        }
+    //   if (valid_zones > 0) {
+    //       distance = sum_distance / valid_zones;
+    //   } else {
+    //       distance = tof_results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE * 5];
+    //   }
 
-        if (valid_zones > 0) {
-            distance = sum_distance / valid_zones;
-        } else {
-            distance = tof_results.distance_mm[VL53L5CX_NB_TARGET_PER_ZONE * 5];
-        }
+    //   // 姿勢による傾き補正とカルマンフィルタ
+    //   z_acc = Az - 9.76548;
+    //   lotate_altitude_init(Theta, Psi, Phi);
+    //   lotated_distance = lotate_altitude(distance);
+    //   Kalman_alt = Kalman_PID(lotated_distance, z_acc);
+    //   altitude = mu_Yn_est(1, 0);
 
-        z_acc = Az - 9.76548;
-        lotate_altitude_init(Theta, Psi, Phi);
-        lotated_distance = lotate_altitude(distance);
-        Kalman_alt = Kalman_PID(lotated_distance, z_acc);
-        altitude = mu_Yn_est(1, 0);
-
-        static uint16_t tof_print_count = 0;
-        tof_print_count++;
-        // 50Hzでここを通るので、25回に1回 = 約0.5秒に1回表示します
-        if (tof_print_count >= 25) {
-            printf("ToF Raw: %4.0f mm | Rotated: %4.1f mm | Kalman Alt: %4.1f mm\r\n", 
-                    distance, lotated_distance, altitude);
-            tof_print_count = 0;
-        }
-      }
-      // tof_watchdog = 200;
-
-      // float distance = (float)z_mm- TOF_OFFSET_Z;
-      // if (distance < 0) distance = 0;
-
-      // z_acc = Az - 9.76548;
-
-      // lotate_altitude_init(Theta, Psi, Phi);
-      // lotated_distance = lotate_altitude(distance);
-
-      // // float swing_z = (TOF_OFFSET_X * sin(Theta)) + (TOF_OFFSET_Y * sin(Phi));
-      // // lotated_distance = lotated_distance - swing_z;
-
-      // Kalman_alt = Kalman_PID(lotated_distance, z_acc);
-      // altitude = mu_Yn_est(1,0);
-
-      // // シリアルモニタ
-      // static uint32_t print_count = 0;
-      // if (print_count++ > 50) {
-      //     printf("Raw: %4.0f mm | Corrected: %4.1f mm | Kalman: %4.1f mm\r\n", distance, lotated_distance, Kalman_alt);
-      //     print_count = 0;
-      // }
-    }
+    //   static uint16_t tof_print_count = 0;
+    //     tof_print_count++;
+    //     // 50Hzでここを通るので、25回に1回 = 約0.5秒に1回表示します
+    //     if (tof_print_count >= 25) {
+    //         printf("ToF Raw: %4.0f mm | Rotated: %4.1f mm | Kalman Alt: %4.1f mm\r\n", 
+    //                 distance, lotated_distance, altitude);
+    //         tof_print_count = 0;
+    //     }
+    // }
   }
 
   // // 高度センサーから値受け取るコード

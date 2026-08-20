@@ -66,8 +66,8 @@ int main(void)
 
   //ToFセンサの初期化
   // tof_setup();
-  initialize_Altitude();
-  printf("#init tof\r\n");
+  // initialize_Altitude();
+  // printf("#init tof\r\n");
   
   Arm_flag=1;
   
